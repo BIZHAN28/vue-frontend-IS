@@ -12,21 +12,21 @@
     <table>
       <thead>
         <tr>
-          <th>id</th>
-          <th>name</th>
-          <th>coordinates</th>
-          <th>area</th>
-          <th>population</th>
-          <th>establishmentDate</th>
-          <th>capital</th>
-          <th>metersAboveSeaLevel</th>
-          <th>climate</th>
-          <th>government</th>
-          <th>standardOfLiving</th>
-          <th>governor</th>
-          <th>owner</th>
-          <th>creationDate</th>
-          <th>delete</th>
+          <th>Id</th>
+          <th>Name</th>
+          <th>Coordinates</th>
+          <th>Area</th>
+          <th>Population</th>
+          <th>Establishment Date</th>
+          <th>Capital</th>
+          <th>Meters Above Sea Level</th>
+          <th>Climate</th>
+          <th>Government</th>
+          <th>Standard Of Living</th>
+          <th>Governor</th>
+          <th>Owner</th>
+          <th>Creation Date</th>
+          <th>Delete</th>
         </tr>
       </thead>
       <tbody>
@@ -34,25 +34,47 @@
           <td v-for="data in row">{{data}}</td>
           <td>
             <button v-if="user === row.owner.username" @click="deleteCity(row.id)">delete</button>
+            <button v-if="user === row.owner.username" @click="editCity(row); showDialog = true">edit</button>
           </td>
         </tr>
       </tbody>
     </table>
     <br>
+    <edit-window :data="editData" @update:show="showDialog = $event" :show="showDialog" />
   </div>
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
+import {onMounted, ref, watch} from "vue";
 import apiClient from "@/api/axios.ts";
+import EditWindow from "@/components/EditWindow.vue";
 
 const user = localStorage.getItem('username');
 const cityData = ref('');
 const governorName = ref('');
+const editData = ref('');
+const showDialog = ref(false);
 
 onMounted(async () => {
   await loadCities();
 })
+
+function editCity(row) {
+  editData.value = row;
+}
+
+watch(showDialog, (newVal) => {
+  if (!newVal) {
+    loadCities();
+  }
+})
+function parseZonedDateTimeToDate(zonedDateTime) {
+  if (!zonedDateTime) return null;
+  const normalizedDateTime = zonedDateTime.endsWith("Z")
+      ? zonedDateTime.slice(0, -1)
+      : zonedDateTime;
+  return new Date(normalizedDateTime).toLocaleDateString();
+}
 
 async function loadCities() {
   try {
@@ -61,7 +83,9 @@ async function loadCities() {
       size: 1000,
     });
     cityData.value = response.data.content;
-    console.log(cityData.value)
+    for (let i = 0; i < response.data.content.length; i++) {
+      cityData.value[i].establishmentDate = parseZonedDateTimeToDate(cityData.value[i].establishmentDate);
+    }
   } catch (error) {
     console.error(error);
   }
@@ -80,7 +104,6 @@ async function filterByGovernorName() {
   try {
     const response = await apiClient.get("cities/governor-name-less-than?governorName=" + governorName.value);
     cityData.value = response.data;
-    console.log(cityData.value)
   } catch (error) {
     console.error(error);
   }
